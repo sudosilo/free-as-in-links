@@ -1,0 +1,39 @@
+name: FMHY suggestions
+
+on:
+  schedule:
+    - cron: "17 14 * * *"
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: "How many hours back to look"
+        default: "25"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  suggest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone FMHY
+        run: git clone --shallow-since="10 days ago" https://github.com/fmhy/edit.git fmhy
+
+      - name: Build suggestion list
+        env:
+          LOOKBACK_HOURS: ${{ github.event.inputs.hours || '25' }}
+        run: python3 .github/scripts/fmhy_diff.py fmhy index.html body.md
+
+      - name: Open issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -s body.md ]; then
+            echo "No suggestions today"
+            exit 0
+          fi
+          gh label create fmhy-suggestions --color 33ff33 --force
+          gh issue create --title "FMHY suggestions $(date -u +%Y-%m-%d)" --label fmhy-suggestions --body-file body.md
