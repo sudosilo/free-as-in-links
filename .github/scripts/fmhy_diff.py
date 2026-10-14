@@ -11,6 +11,9 @@ def norm(u):
     u = re.sub(r'^https?://', '', u.strip())
     return u.rstrip('/.,;').lower()
 
+def clean(s):
+    return re.sub(r'[\u200b-\u200f\u2060\ufeff\u00ad]', '', s).strip()
+
 def git(*a):
     return subprocess.run(["git", "-C", FMHY, *a], capture_output=True, text=True).stdout
 
@@ -54,7 +57,7 @@ for root, _, files in os.walk(os.path.join(FMHY, "docs")):
                 n = norm(u)
                 if n in added and n not in where:
                     name = re.search(r'\[([^\]]+)\]\(' + re.escape(u), line)
-                    where[n] = (f[:-3], heading, name.group(1) if name else "")
+                    where[n] = (f[:-3], clean(heading), clean(name.group(1)) if name else "")
 
 if not new_links and not dead_links:
     print("nothing to suggest")
